@@ -66,7 +66,7 @@ pip install -r requirements.txt
 Run server
 
 ```
-uvicorn app.main:app --reload
+uvicorn backend.server.app:app --reload
 ````
 
 ## API Docs
@@ -202,8 +202,3 @@ Content-Type: application/json
   "_id": "984a3b0d-7fc4-4e46-a19e-83df96db61cf"
 }
 ```
-
-🧑‍💻 Development
-- Format code: black .
-- Lint: flake8
-- Run tests: pytest
