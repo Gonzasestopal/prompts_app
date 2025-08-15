@@ -6,13 +6,13 @@ Simple API for message management
 ## 📜 Table of Contents
 1. [Overview](#overview)
 2. [Architecture](#architecture)
-3. [Entities](#entities)
-3. [Tech Stack](#tech-stack)
-4. [Getting Started](#getting-started)
-5. [Environment Variables](#environment-variables)
-6. [API Documentation](#api-documentation)
-7. [Example Requests](#example-requests)
-8. [Development](#development)
+3. [Components](#components)
+4. [Entities](#entities)
+5. [Tech Stack](#tech-stack)
+6. [Getting Started](#getting-started)
+7. [Environment Variables](#environment-variables)
+8. [API Documentation](#api-documentation)
+9. [Example Requests](#example-requests)
 
 ## Overview
 This application allows AI prompts management through an API.
@@ -30,6 +30,12 @@ Includes:
 - **API**: REST API built with FastAPI.
 - **Database**: MongoDB for persistent storage.
 
+## Components
+![Components Diagram](docs/components.png)
+
+- We will be display all information on the base route.
+- Slide in bar for existing data table messages.
+- Modal popup for new messages.
 
 ## Entities
 ![Entities](docs/entities.png)
