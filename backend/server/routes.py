@@ -3,8 +3,8 @@ from typing import Any, List
 from fastapi import APIRouter, status
 
 from backend.server.database import (get_message, insert_message,
-                                     retrieve_messages)
-from backend.server.requests import MessageCreate
+                                     retrieve_messages, update_message)
+from backend.server.requests import MessageCreate, MessageUpdate
 
 router = APIRouter()
 
@@ -23,6 +23,12 @@ async def get_messages():
 async def create_message(message: MessageCreate):
     return await insert_message(message)
 
+
 @router.get("/{message_id}", response_description="Message retrieved", response_model=Any)
 async def show_message(message_id: str):
     return await get_message(message_id)
+
+
+@router.put("/{message_id}", response_model=Any, status_code=status.HTTP_200_OK)
+async def edit_message(message_id: str, message: MessageUpdate):
+    return await update_message(message_id, message.content)

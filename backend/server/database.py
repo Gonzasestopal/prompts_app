@@ -40,3 +40,22 @@ async def get_message(message_id: str) -> Message:
             detail="Message not found"
         )
     return message
+
+
+async def update_message(message_id: str, content: str) -> Message:
+    msg = await Message.get(message_id)
+    if not msg:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Message not found",
+        )
+
+    try:
+        msg.content = content
+        await msg.save()  # beanie Replace flow
+        return msg
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}",
+        )

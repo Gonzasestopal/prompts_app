@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-from sys import exc_info
 from unittest.mock import patch
 
 import pytest
@@ -36,10 +35,10 @@ def test_show_message():
 def test_show_message_no_message_found():
     from backend.server import routes
 
-    async def fake_retrieve_message_empty(message_id):
+    async def fake_retrieve_message_error(message_id):
         raise Exception("Database error")
 
-    with patch.object(routes, "get_message", new=fake_retrieve_message_empty):
+    with patch.object(routes, "get_message", new=fake_retrieve_message_error):
         with pytest.raises(Exception) as exc_info:
             client.get("/messages/64e3f1e25a0f0a0012abc123")
 
