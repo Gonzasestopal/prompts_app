@@ -1,0 +1,6 @@
+pytest
+httpx
+anyio
+pytest-asyncio
+mongomock-motor
+pytest-mock
