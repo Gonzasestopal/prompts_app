@@ -11,3 +11,9 @@ export async function createMessage(input: {content: string; status?: "active"|"
   if (!r.ok) throw new Error("Failed to create");
   return r.json();
 }
+
+export async function getMessage(id: string) {
+  const r = await fetch(`/api/messages/${id}`, { cache: "no-store" });
+  if (!r.ok) throw new Error(`Failed to fetch message ${id}`);
+  return r.json();
+}

@@ -6,12 +6,21 @@ import * as React from "react";
 import { useMemo, useState } from "react";
 
 import { ReusableModal } from "@/components/reusable-modal";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Loader2, Plus } from "lucide-react";
-
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle
+} from "@/components/ui/drawer";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { createMessage, getMessage } from "@/lib/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Loader2, Plus } from "lucide-react";
 
 export type Message = {
   _id: string;
@@ -47,11 +56,16 @@ function fmt(dt: string) {
 }
 
 export function MessagesTable({ data, pageSize = 10, onRowClick, onCreate }: Props) {
+  const queryClient = useQueryClient();
+
   const [q, setQ] = useState("");
-  const [page, setPage] = useState(1);
-  const [open, setOpen] = useState(false);
+  const [page] = useState(1); // keep it simple here
+  const [openDetails, setOpenDetails] = useState(false);
+  const [openCreate, setOpenCreate] = useState(false);
+  const [selected, setSelected] = useState<Message | null>(null);
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
 
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
@@ -63,24 +77,38 @@ export function MessagesTable({ data, pageSize = 10, onRowClick, onCreate }: Pro
     );
   }, [q, data]);
 
+  const { data: fresh, isFetching } = useQuery({
+    queryKey: ["message", selected?._id],
+    queryFn: () => getMessage(selected!._id),
+    enabled: !!selected && openDetails, // only fetch if drawer is open
+    staleTime: 10_000,
+  });
+
+  const view = fresh ?? selected;
+
+
   const total = filtered.length;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const current = useMemo(() => {
     const start = (page - 1) * pageSize;
     return filtered.slice(start, start + pageSize);
   }, [filtered, page, pageSize]);
 
+
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
   React.useEffect(() => {
-    if (page > totalPages) setPage(1);
-  }, [totalPages, page]);
+    if (openCreate) setTimeout(() => inputRef.current?.focus(), 0);
+  }, [openCreate]);
 
   async function submitNew() {
-    if (!content.trim() || !onCreate) return;
+    if (!content.trim()) return;
     setSubmitting(true);
     try {
-      await onCreate(content.trim()); // parent does API + refresh
+      await createMessage({content: content.trim()});
       setContent("");
-      setOpen(false);
+      setOpenCreate(false);
+      // Refresh main table data
+      queryClient.invalidateQueries({ queryKey: ["messages"] });
     } finally {
       setSubmitting(false);
     }
@@ -99,7 +127,7 @@ export function MessagesTable({ data, pageSize = 10, onRowClick, onCreate }: Pro
           />
         </div>
 
-        <Button className="gap-2" onClick={() => setOpen(true)}>
+        <Button className="gap-2" onClick={() => setOpenCreate(true)}>
           <Plus className="h-4 w-4" />
           New Message
         </Button>
@@ -125,7 +153,10 @@ export function MessagesTable({ data, pageSize = 10, onRowClick, onCreate }: Pro
               <TableRow
                 key={m._id}
                 className={onRowClick ? "cursor-pointer hover:bg-accent/40" : ""}
-                onClick={() => onRowClick?.(m)}
+                onClick={(e) => {
+                  if ((e.target as HTMLElement).closest("button,input,a,[role='button']")) return;
+                  setSelected(m); setOpenDetails(true); onRowClick?.(m);
+                }}
               >
                 <TableCell className="font-mono text-xs">{m._id}</TableCell>
                 <TableCell className="max-w-[520px]">
@@ -147,9 +178,36 @@ export function MessagesTable({ data, pageSize = 10, onRowClick, onCreate }: Pro
         </Table>
       </div>
 
- <ReusableModal
-        open={open}
-        onOpenChange={setOpen}
+      <Drawer open={openDetails} onOpenChange={setOpenDetails} direction="right">
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>Message details</DrawerTitle>
+            <DrawerDescription>
+              {view ? `ID: ${view._id}` : null}
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="p-4 space-y-2">
+            {isFetching && <p className="text-sm text-muted-foreground">Loading latest…</p>}
+            {view && (
+              <>
+                <p><span className="font-medium">Content:</span> {view.content}</p>
+                <p><span className="font-medium">Status:</span> {view.status}</p>
+                <p><span className="font-medium">Created:</span> {fmt(view.created_at)}</p>
+                <p><span className="font-medium">Updated:</span> {fmt(view.updated_at)}</p>
+              </>
+            )}
+          </div>
+          <div className="p-4">
+            <DrawerClose asChild>
+              <Button variant="outline">Close</Button>
+            </DrawerClose>
+          </div>
+        </DrawerContent>
+      </Drawer>
+
+      <ReusableModal
+        open={openCreate}
+        onOpenChange={setOpenCreate}
         title="Create message"
         description="Submit a new message."
         content={
@@ -157,13 +215,15 @@ export function MessagesTable({ data, pageSize = 10, onRowClick, onCreate }: Pro
             <label className="grid gap-2">
               <span className="text-sm font-medium">Content</span>
               <Input
+                ref={inputRef}
                 placeholder="Type your message…"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") submitNew(); }}
               />
             </label>
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setOpenCreate(false)}>Cancel</Button>
               <Button onClick={submitNew} disabled={submitting || !content.trim()} className="gap-2">
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                 Create
