@@ -13,6 +13,7 @@ Simple API for message management
 7. [Environment Variables](#environment-variables)
 8. [API Documentation](#api-documentation)
 9. [Example Requests](#example-requests)
+10. [Images](#images)
 
 ## Overview
 This application allows AI prompts management through an API.
@@ -34,7 +35,7 @@ Includes:
 ![Components Diagram](docs/components.png)
 
 - We will be display all information on the base route.
-- Slide in bar for existing data table messages.
+- Slide in bar for existing data table messages
 - Modal popup for new messages.
 
 ## Entities
@@ -208,3 +209,6 @@ Content-Type: application/json
   "_id": "984a3b0d-7fc4-4e46-a19e-83df96db61cf"
 }
 ```
+
+## Images
+![dashboard](docs/dashboard.png)
