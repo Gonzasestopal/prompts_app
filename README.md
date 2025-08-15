@@ -14,6 +14,7 @@ Simple API for message management
 8. [API Documentation](#api-documentation)
 9. [Example Requests](#example-requests)
 10. [Images](#images)
+11. [Testing](#testing)
 
 ## Overview
 This application allows AI prompts management through an API.
@@ -65,16 +66,25 @@ Messages will contain ai prompts.
 
 ### Installation
 ```bash
-git clone https://github.com/gonzasestopal/semantiks.git
-cd semantiks
+git clone https://github.com/gonzasestopal/prompts_app.git
+cd prompts_app/backend
 pip install -r requirements.txt
+pip install -r requirements-dev.txt
+cd ..
 ```
-
-Run server
-
+Run server from root folder !! important
 ```
 uvicorn backend.server.app:app --reload
 ````
+
+```
+cd prompts_app/frontend
+npm install
+```
+Run client
+```
+npm run dev
+```
 
 ## API Docs
 
@@ -229,3 +239,9 @@ Content-Type: application/json
 ![drawer](docs/drawer.png)
 
 ![dropdown](docs/dropdown.png)
+
+## Testing
+Run tests
+```
+pytest -v
+```
