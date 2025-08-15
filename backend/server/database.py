@@ -31,3 +31,12 @@ async def insert_message(message: MessageCreate) -> Message:
             detail=f"Database error: {str(e)}"
         )
 
+
+async def get_message(message_id: str) -> Message:
+    message = await message_collection.get(message_id)
+    if not message:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Message not found"
+        )
+    return message
