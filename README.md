@@ -176,10 +176,16 @@ Content-Type: application/json
 **Response 404**
 ```
 {
-  "error": "Message not found",
-  "id": "12345"
+  "detail": "Message not found",
 }
 ```
+**Response 422**
+```
+{
+  "error": "Id must be of type PydanticObjectId"",
+}
+```
+
 **PUT /messages**
 ```http
 PUT /messages HTTP/1.1
@@ -205,8 +211,13 @@ Content-Type: application/json
 **Response 404**
 ```
 {
-  "error": "Message not found",
-  "_id": "984a3b0d-7fc4-4e46-a19e-83df96db61cf"
+  "detail": "Message not found",
+}
+```
+**Response 422**
+```
+{
+  "detail": "message_id must be a valid object ID",
 }
 ```
 

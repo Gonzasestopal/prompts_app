@@ -1,5 +1,6 @@
 from typing import Any, List
 
+from beanie import PydanticObjectId
 from fastapi import APIRouter, status
 
 from backend.server.database import (get_message, insert_message,
@@ -25,10 +26,10 @@ async def create_message(message: MessageCreate):
 
 
 @router.get("/{message_id}", response_description="Message retrieved", response_model=Any)
-async def show_message(message_id: str):
+async def show_message(message_id: PydanticObjectId):
     return await get_message(message_id)
 
 
 @router.put("/{message_id}", response_model=Any, status_code=status.HTTP_200_OK)
-async def edit_message(message_id: str, message: MessageUpdate):
+async def edit_message(message_id: PydanticObjectId, message: MessageUpdate):
     return await update_message(message_id, message.content, message.status)

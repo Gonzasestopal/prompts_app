@@ -42,7 +42,7 @@ async def get_message(message_id: str) -> Message:
     return message
 
 
-async def update_message(message_id: str, content: str | None = None, status: str | None = None) -> Message:
+async def update_message(message_id: str, content: str | None = None, new_status: str | None = None) -> Message:
     msg = await Message.get(message_id)
     if not msg:
         raise HTTPException(
@@ -53,8 +53,8 @@ async def update_message(message_id: str, content: str | None = None, status: st
     try:
         if content is not None:
             msg.content = content
-        if status is not None:
-            msg.status = status
+        if new_status is not None:
+            msg.status = new_status
 
         await msg.save()  # Only saves if something changed
         return msg
