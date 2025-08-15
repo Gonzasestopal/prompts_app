@@ -1,4 +1,4 @@
-from typing import List
+from typing import Optional
 
 from fastapi import HTTPException, status
 
@@ -8,9 +8,11 @@ from backend.server.requests import MessageCreate
 message_collection = Message
 
 
-async def retrieve_messages() -> List[Message]:
-    messages = await message_collection.find_all().sort("-created_at").to_list()
-    return messages
+async def retrieve_messages(status: Optional[str] = None):
+    query = Message.find()
+    if status:
+        query = query.find(Message.status == status)
+    return await query.sort("-created_at").to_list()
 
 
 async def insert_message(message: MessageCreate) -> Message:

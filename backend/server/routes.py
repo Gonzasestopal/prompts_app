@@ -1,7 +1,7 @@
-from typing import Any, List
+from typing import Any, List, Optional
 
 from beanie import PydanticObjectId
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Query, status
 
 from backend.server.database import (get_message, insert_message,
                                      retrieve_messages, update_message)
@@ -11,8 +11,8 @@ router = APIRouter()
 
 
 @router.get("/", response_description="Messages retrieved", response_model=List[Any])
-async def get_messages():
-    return await retrieve_messages()
+async def get_messages(status: Optional[str] = Query(None, description="Filter by status")):
+    return await retrieve_messages(status=status)
 
 
 @router.post(

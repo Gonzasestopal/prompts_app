@@ -20,7 +20,7 @@ def test_edit_message():
             "updatedAt": datetime(2025, 8, 14, 15, 42, 30, tzinfo=timezone.utc),
         }
 
-    async def fake_retrieve_message(message_id, content):
+    async def fake_retrieve_message(message_id, content, status):
         fake["content"] = content
         return fake
 
@@ -36,7 +36,7 @@ def test_edit_message():
 def test_edit_message_raises_500():
     from backend.server import routes
 
-    async def fake_retrieve_message_error(message_id, content):
+    async def fake_retrieve_message_error(message_id, content, status):
         raise Exception("Database error")
 
     with patch.object(routes, "get_message", new=fake_retrieve_message_error):

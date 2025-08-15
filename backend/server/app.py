@@ -38,6 +38,5 @@ async def ping():
 
 app.include_router(MessageRouter, tags=["Messages"], prefix="/messages")
 
-
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(InvalidId, invalid_objectid_handler)

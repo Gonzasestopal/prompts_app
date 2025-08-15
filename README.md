@@ -182,7 +182,7 @@ Content-Type: application/json
 **Response 422**
 ```
 {
-  "error": "Id must be of type PydanticObjectId"",
+  "detail": "message_id must be a valid object ID",
 }
 ```
 
