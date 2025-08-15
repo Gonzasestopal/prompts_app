@@ -1,7 +1,7 @@
 "use client";
 
 
-import { MessagesTable } from "@/components/messages-table.tsx";
+import { MessagesTable } from "@/components/messages-table";
 import { listMessages } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 

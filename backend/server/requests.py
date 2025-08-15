@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel
 
 
@@ -6,4 +8,5 @@ class MessageCreate(BaseModel):
 
 
 class MessageUpdate(BaseModel):
-    content: str
+    content: Optional[str] = None
+    status: Optional[str] = None

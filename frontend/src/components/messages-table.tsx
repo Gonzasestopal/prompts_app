@@ -17,9 +17,10 @@ import {
   DrawerTitle
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { createMessage, getMessage } from "@/lib/api";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { createMessage, getMessage, updateMessage } from "@/lib/api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Plus } from "lucide-react";
 
 export type Message = {
@@ -63,9 +64,37 @@ export function MessagesTable({ data, pageSize = 10, onRowClick, onCreate }: Pro
   const [openDetails, setOpenDetails] = useState(false);
   const [openCreate, setOpenCreate] = useState(false);
   const [selected, setSelected] = useState<Message | null>(null);
-  const [content, setContent] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [newContent, setNewContent] = useState("");  const [submitting, setSubmitting] = useState(false);
+  const [editContent, setEditContent] = useState("");
+  const [editStatus, setEditStatus] = useState<string>("active");
 
+
+  // When you open a row, seed editContent
+  function openDetailsFor(m: Message) {
+    setSelected(m);
+    setEditContent(m.content);
+    setOpenDetails(true);
+    onRowClick?.(m);
+  }
+
+  const createMut = useMutation({
+    mutationFn: createMessage,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["messages"] });
+      setOpenCreate(false);
+      setNewContent("");
+    },
+  });
+
+  const updateMut = useMutation({
+    mutationFn: ({ id, content, status }: { id: string; content: string; status: string }) =>
+      updateMessage({ id, content, status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["messages"] });
+      queryClient.invalidateQueries({ queryKey: ["message", selected?._id] });
+      setOpenDetails(false);
+    },
+  });
 
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
@@ -77,6 +106,13 @@ export function MessagesTable({ data, pageSize = 10, onRowClick, onCreate }: Pro
     );
   }, [q, data]);
 
+  React.useEffect(() => {
+  if (selected) {
+    setEditContent(selected.content);
+    setEditStatus(selected.status);
+  }
+}, [selected]);
+
   const { data: fresh, isFetching } = useQuery({
     queryKey: ["message", selected?._id],
     queryFn: () => getMessage(selected!._id),
@@ -84,7 +120,7 @@ export function MessagesTable({ data, pageSize = 10, onRowClick, onCreate }: Pro
     staleTime: 10_000,
   });
 
-  const view = fresh ?? selected;
+  const view = fresh && fresh._id === selected?._id ? fresh : selected;
 
 
   const total = filtered.length;
@@ -101,11 +137,11 @@ export function MessagesTable({ data, pageSize = 10, onRowClick, onCreate }: Pro
   }, [openCreate]);
 
   async function submitNew() {
-    if (!content.trim()) return;
+    if (!newContent.trim()) return;
     setSubmitting(true);
     try {
-      await createMessage({content: content.trim()});
-      setContent("");
+      await createMessage({content: newContent.trim()});
+      setNewContent("");
       setOpenCreate(false);
       // Refresh main table data
       queryClient.invalidateQueries({ queryKey: ["messages"] });
@@ -153,10 +189,7 @@ export function MessagesTable({ data, pageSize = 10, onRowClick, onCreate }: Pro
               <TableRow
                 key={m._id}
                 className={onRowClick ? "cursor-pointer hover:bg-accent/40" : ""}
-                onClick={(e) => {
-                  if ((e.target as HTMLElement).closest("button,input,a,[role='button']")) return;
-                  setSelected(m); setOpenDetails(true); onRowClick?.(m);
-                }}
+                onClick={() => openDetailsFor(m)}
               >
                 <TableCell className="font-mono text-xs">{m._id}</TableCell>
                 <TableCell className="max-w-[520px]">
@@ -186,21 +219,57 @@ export function MessagesTable({ data, pageSize = 10, onRowClick, onCreate }: Pro
               {view ? `ID: ${view._id}` : null}
             </DrawerDescription>
           </DrawerHeader>
-          <div className="p-4 space-y-2">
-            {isFetching && <p className="text-sm text-muted-foreground">Loading latest…</p>}
-            {view && (
-              <>
-                <p><span className="font-medium">Content:</span> {view.content}</p>
-                <p><span className="font-medium">Status:</span> {view.status}</p>
-                <p><span className="font-medium">Created:</span> {fmt(view.created_at)}</p>
-                <p><span className="font-medium">Updated:</span> {fmt(view.updated_at)}</p>
-              </>
+
+          <div className="p-4 space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Content</label>
+              <Input
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                placeholder="Message content"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Status</label>
+              <Select value={editStatus} onValueChange={setEditStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="deleted">Deleted</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Read-only fields */}
+            {selected && (
+              <div className="space-y-1 text-sm text-muted-foreground">
+                <div><span className="font-medium text-foreground">Created:</span> {fmt(selected.created_at)}</div>
+                <div><span className="font-medium text-foreground">Updated:</span> {fmt(selected.updated_at)}</div>
+              </div>
             )}
           </div>
-          <div className="p-4">
+          <div className="p-4 flex flex-col gap-2">
             <DrawerClose asChild>
-              <Button variant="outline">Close</Button>
+              <Button variant="outline" className="w-full">
+                Close
+              </Button>
             </DrawerClose>
+              <Button
+                onClick={() =>
+                  updateMut.mutate({
+                    id: selected!._id,
+                    content: editContent,
+                    status: editStatus as Message["status"],
+                  })
+                }
+                disabled={updateMut.isPending || !editContent.trim()}
+                className="w-full"
+              >
+                {updateMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+              </Button>
           </div>
         </DrawerContent>
       </Drawer>
@@ -217,15 +286,23 @@ export function MessagesTable({ data, pageSize = 10, onRowClick, onCreate }: Pro
               <Input
                 ref={inputRef}
                 placeholder="Type your message…"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") submitNew(); }}
+                value={newContent}
+                onChange={(e) => setNewContent(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newContent.trim()) {
+                    createMut.mutate({ content: newContent.trim() });
+                  }
+                }}
               />
             </label>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setOpenCreate(false)}>Cancel</Button>
-              <Button onClick={submitNew} disabled={submitting || !content.trim()} className="gap-2">
-                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              <Button
+                onClick={() => createMut.mutate({ content: newContent.trim() })}
+                disabled={createMut.isPending || !newContent.trim()}
+                className="gap-2"
+              >
+                {createMut.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                 Create
               </Button>
             </div>

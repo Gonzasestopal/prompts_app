@@ -31,4 +31,4 @@ async def show_message(message_id: str):
 
 @router.put("/{message_id}", response_model=Any, status_code=status.HTTP_200_OK)
 async def edit_message(message_id: str, message: MessageUpdate):
-    return await update_message(message_id, message.content)
+    return await update_message(message_id, message.content, message.status)
