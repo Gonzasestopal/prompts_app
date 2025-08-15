@@ -10,11 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export type Message = {
-  id: string;
+  _id: string;
   content: string;
   status: "active" | "inactive" | "deleted";
-  createdAt: string; // ISO 8601
-  updatedAt: string; // ISO 8601
+  created_at: string;
+  updated_at: string;
 };
 
 type Props = {
@@ -48,7 +48,7 @@ export function MessagesTable({ data, pageSize = 10, onRowClick }: Props) {
     const t = q.trim().toLowerCase();
     if (!t) return data;
     return data.filter((r) =>
-      r.id.toLowerCase().includes(t) ||
+      r._id.toLowerCase().includes(t) ||
       r.content.toLowerCase().includes(t) ||
       r.status.toLowerCase().includes(t)
     );
@@ -96,17 +96,17 @@ export function MessagesTable({ data, pageSize = 10, onRowClick }: Props) {
           <TableBody>
             {current.map((m) => (
               <TableRow
-                key={m.id}
+                key={m._id}
                 className={onRowClick ? "cursor-pointer hover:bg-accent/40" : ""}
                 onClick={() => onRowClick?.(m)}
               >
-                <TableCell className="font-mono text-xs">{m.id}</TableCell>
+                <TableCell className="font-mono text-xs">{m._id}</TableCell>
                 <TableCell className="max-w-[520px]">
                   <div className="line-clamp-2 text-sm text-foreground/90">{m.content}</div>
                 </TableCell>
                 <TableCell><StatusBadge status={m.status} /></TableCell>
-                <TableCell className="text-sm text-muted-foreground">{fmt(m.createdAt)}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{fmt(m.updatedAt)}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{fmt(m.created_at)}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{fmt(m.updated_at)}</TableCell>
               </TableRow>
             ))}
             {current.length === 0 && (

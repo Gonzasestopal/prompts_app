@@ -120,15 +120,15 @@ Host: http://localhost:8000
     "_id_": "984a3b0d-7fc4-4e46-a19e-83df96db61cf",
     "content": "Please show me the weather of X",
     "status": "active",
-    "createAt": "2025-08-14T15:42:30Z",
-    "updateAt": "2025-08-14T15:42:30Z"
+    "created_at": "2025-08-14T15:42:30Z",
+    "updated_at": "2025-08-14T15:42:30Z"
   },
   {
     "_id_": "984a3b0d-7fc4-4e46-a19e-83df96db61cf",
     "content": "Is this the normal weather of X?",
     "status": "active",
-    "createAt": "2025-08-14T18:42:30Z",
-    "updateAt": "2025-08-14T18:42:30Z"
+    "created_at": "2025-08-14T18:42:30Z",
+    "updated_at": "2025-08-14T18:42:30Z"
   }
 ]
 ```
@@ -151,8 +151,8 @@ Content-Type: application/json
   "_id": "984a3b0d-7fc4-4e46-a19e-83df96db61cf",
   "content": "Can you show me the weather of previous week?",
   "status": "active",
-  "createAt": "2025-08-14T15:42:30Z"
-  "updateAt": "2025-08-14T18:42:30Z"
+  "created_at": "2025-08-14T15:42:30Z"
+  "updated_at": "2025-08-14T18:42:30Z"
 
 }
 ```
@@ -169,8 +169,8 @@ Content-Type: application/json
   "_id": "984a3b0d-7fc4-4e46-a19e-83df96db61cf",
   "content": "Is this the normal weather of X?",
   "status": "active",
-  "createAt": "2025-08-14T15:42:30Z",
-  "updateAt": "2025-08-14T18:42:30Z"
+  "created_at": "2025-08-14T15:42:30Z",
+  "updated_at": "2025-08-14T18:42:30Z"
 }
 ```
 **Response 404**
@@ -198,8 +198,8 @@ Content-Type: application/json
   "_id": "984a3b0d-7fc4-4e46-a19e-83df96db61cf",
   "content": "Is this the normal weather of X?",
   "status": "inactive",
-  "createAt": "2025-08-14T15:42:30Z",
-  "updateAt": "2025-08-14T20:10:05Z"
+  "created_at": "2025-08-14T15:42:30Z",
+  "updated_at": "2025-08-14T20:10:05Z"
 }
 ```
 **Response 404**
