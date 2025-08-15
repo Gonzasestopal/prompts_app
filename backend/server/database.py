@@ -9,7 +9,7 @@ message_collection = Message
 
 
 async def retrieve_messages() -> List[Message]:
-    messages = await message_collection.all().to_list()
+    messages = await message_collection.find_all().sort("-created_at").to_list()
     return messages
 
 

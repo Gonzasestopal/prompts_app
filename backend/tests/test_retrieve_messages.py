@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -12,12 +12,16 @@ async def test_retrieve_messages_without_db():
         database.Message(content="World", status="inactive"),
     ]
 
-    mock_all = AsyncMock()
-    mock_all.to_list.return_value = fake_messages
+    # Create a mock chain: find_all() -> sort() -> to_list()
+    mock_sort = MagicMock()
+    mock_sort.to_list = AsyncMock(return_value=fake_messages)
 
-    with patch.object(database.message_collection, "all", return_value=mock_all):
+    mock_find_all = MagicMock()
+    mock_find_all.sort.return_value = mock_sort
+
+    with patch.object(database.message_collection, "find_all", return_value=mock_find_all):
         result = await database.retrieve_messages()
 
     assert result == fake_messages
     assert isinstance(result[0], database.Message)
-    mock_all.to_list.assert_called_once()
+    mock_sort.to_list.assert_awaited_once()
