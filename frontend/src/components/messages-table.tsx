@@ -1,9 +1,9 @@
 "use client";
 
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Search } from "lucide-react";
-import * as React from "react";
-import { useMemo, useState } from "react";
+import { Loader2, Plus, Search } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ReusableModal } from "@/components/reusable-modal";
 import { Badge } from "@/components/ui/badge";
@@ -14,14 +14,19 @@ import {
   DrawerContent,
   DrawerDescription,
   DrawerHeader,
-  DrawerTitle
+  DrawerTitle,
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
 import { createMessage, getMessage, updateMessage } from "@/lib/api";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Plus } from "lucide-react";
 
 export type Message = {
   _id: string;
@@ -33,11 +38,12 @@ export type Message = {
 
 type Props = {
   data: Message[];
+  statusFilter: string;
+  setStatusFilter: (val: string) => void;
+  isFetching?: boolean;
   pageSize?: number;
   onRowClick?: (row: Message) => void;
-  onCreate?: (content: string) => Promise<void> | void;
 };
-
 
 function StatusBadge({ status }: { status: Message["status"] }) {
   const map: Record<Message["status"], string> = {
@@ -49,36 +55,33 @@ function StatusBadge({ status }: { status: Message["status"] }) {
 }
 
 function fmt(dt: string) {
-  try {
-    return format(new Date(dt), "yyyy-MM-dd HH:mm");
-  } catch {
-    return dt;
-  }
+  try { return format(new Date(dt), "yyyy-MM-dd HH:mm"); } catch { return dt; }
 }
 
-export function MessagesTable({ data, pageSize = 10, onRowClick, onCreate }: Props) {
+export function MessagesTable({
+  data,
+  statusFilter,
+  setStatusFilter,
+  isFetching: isListFetching,
+  pageSize = 10,
+  onRowClick,
+}: Props) {
   const queryClient = useQueryClient();
 
   const [q, setQ] = useState("");
-  const [page] = useState(1); // keep it simple here
+  const [page] = useState(1);
   const [openDetails, setOpenDetails] = useState(false);
   const [openCreate, setOpenCreate] = useState(false);
+
   const [selected, setSelected] = useState<Message | null>(null);
-  const [newContent, setNewContent] = useState("");  const [submitting, setSubmitting] = useState(false);
   const [editContent, setEditContent] = useState("");
-  const [editStatus, setEditStatus] = useState<string>("active");
+  const [editStatus, setEditStatus] = useState<Message["status"]>("active");
 
-
-  // When you open a row, seed editContent
-  function openDetailsFor(m: Message) {
-    setSelected(m);
-    setEditContent(m.content);
-    setOpenDetails(true);
-    onRowClick?.(m);
-  }
+  const [newContent, setNewContent] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const createMut = useMutation({
-    mutationFn: createMessage,
+    mutationFn: ({ content }: { content: string }) => createMessage({ content }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["messages"] });
       setOpenCreate(false);
@@ -87,11 +90,13 @@ export function MessagesTable({ data, pageSize = 10, onRowClick, onCreate }: Pro
   });
 
   const updateMut = useMutation({
-    mutationFn: ({ id, content, status }: { id: string; content: string; status: string }) =>
+    mutationFn: ({ id, content, status }: { id: string; content: string; status: Message["status"] }) =>
       updateMessage({ id, content, status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["messages"] });
-      queryClient.invalidateQueries({ queryKey: ["message", selected?._id] });
+      if (selected?._id) {
+        queryClient.invalidateQueries({ queryKey: ["message", selected._id] });
+      }
       setOpenDetails(false);
     },
   });
@@ -99,29 +104,39 @@ export function MessagesTable({ data, pageSize = 10, onRowClick, onCreate }: Pro
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
     if (!t) return data;
-    return data.filter((r) =>
+    return data.filter(r =>
       r._id.toLowerCase().includes(t) ||
       r.content.toLowerCase().includes(t) ||
       r.status.toLowerCase().includes(t)
     );
   }, [q, data]);
 
-  React.useEffect(() => {
-  if (selected) {
-    setEditContent(selected.content);
-    setEditStatus(selected.status);
-  }
-}, [selected]);
-
-  const { data: fresh, isFetching } = useQuery({
+  const { data: fresh, isFetching: isMessageFetching } = useQuery({
     queryKey: ["message", selected?._id],
     queryFn: () => getMessage(selected!._id),
-    enabled: !!selected && openDetails, // only fetch if drawer is open
+    enabled: !!selected && openDetails,
     staleTime: 10_000,
   });
 
-  const view = fresh && fresh._id === selected?._id ? fresh : selected;
+  useEffect(() => {
+    const m = fresh ?? selected;
+    if (m) {
+      setEditContent(m.content);
+      setEditStatus(m.status);
+    }
+  }, [fresh, selected]);
 
+  useEffect(() => {
+    if (openCreate) setTimeout(() => inputRef.current?.focus(), 0);
+  }, [openCreate]);
+
+  useEffect(() => {
+    if (!openDetails) {
+      setSelected(null);
+      setEditContent("");
+      setEditStatus("active");
+    }
+  }, [openDetails]);
 
   const total = filtered.length;
   const current = useMemo(() => {
@@ -129,25 +144,10 @@ export function MessagesTable({ data, pageSize = 10, onRowClick, onCreate }: Pro
     return filtered.slice(start, start + pageSize);
   }, [filtered, page, pageSize]);
 
-
-  const inputRef = React.useRef<HTMLInputElement>(null);
-
-  React.useEffect(() => {
-    if (openCreate) setTimeout(() => inputRef.current?.focus(), 0);
-  }, [openCreate]);
-
-  async function submitNew() {
-    if (!newContent.trim()) return;
-    setSubmitting(true);
-    try {
-      await createMessage({content: newContent.trim()});
-      setNewContent("");
-      setOpenCreate(false);
-      // Refresh main table data
-      queryClient.invalidateQueries({ queryKey: ["messages"] });
-    } finally {
-      setSubmitting(false);
-    }
+  function openDetailsFor(m: Message) {
+    setSelected(m);
+    setOpenDetails(true);
+    onRowClick?.(m);
   }
 
   return (
@@ -161,6 +161,23 @@ export function MessagesTable({ data, pageSize = 10, onRowClick, onCreate }: Pro
             onChange={(e) => setQ(e.target.value)}
             className="pl-8"
           />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+              <SelectItem value="deleted">Deleted</SelectItem>
+            </SelectContent>
+          </Select>
+          {isListFetching && (
+            <span className="text-xs text-muted-foreground">Refreshing…</span>
+          )}
         </div>
 
         <Button className="gap-2" onClick={() => setOpenCreate(true)}>
@@ -188,7 +205,7 @@ export function MessagesTable({ data, pageSize = 10, onRowClick, onCreate }: Pro
             {current.map((m) => (
               <TableRow
                 key={m._id}
-                className={onRowClick ? "cursor-pointer hover:bg-accent/40" : ""}
+                className="cursor-pointer hover:bg-accent/40"
                 onClick={() => openDetailsFor(m)}
               >
                 <TableCell className="font-mono text-xs">{m._id}</TableCell>
@@ -214,9 +231,9 @@ export function MessagesTable({ data, pageSize = 10, onRowClick, onCreate }: Pro
       <Drawer open={openDetails} onOpenChange={setOpenDetails} direction="right">
         <DrawerContent>
           <DrawerHeader>
-            <DrawerTitle>Message details</DrawerTitle>
+            <DrawerTitle>Edit Message</DrawerTitle>
             <DrawerDescription>
-              {view ? `ID: ${view._id}` : null}
+              {selected ? `ID: ${selected._id}` : null}
             </DrawerDescription>
           </DrawerHeader>
 
@@ -232,7 +249,10 @@ export function MessagesTable({ data, pageSize = 10, onRowClick, onCreate }: Pro
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Status</label>
-              <Select value={editStatus} onValueChange={setEditStatus}>
+              <Select
+                value={editStatus}
+                onValueChange={(v) => setEditStatus(v as Message["status"])}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
@@ -243,7 +263,11 @@ export function MessagesTable({ data, pageSize = 10, onRowClick, onCreate }: Pro
                 </SelectContent>
               </Select>
             </div>
-            {/* Read-only fields */}
+
+            {isMessageFetching && (
+              <div className="text-xs text-muted-foreground">Loading latest…</div>
+            )}
+
             {selected && (
               <div className="space-y-1 text-sm text-muted-foreground">
                 <div><span className="font-medium text-foreground">Created:</span> {fmt(selected.created_at)}</div>
@@ -251,25 +275,25 @@ export function MessagesTable({ data, pageSize = 10, onRowClick, onCreate }: Pro
               </div>
             )}
           </div>
+
           <div className="p-4 flex flex-col gap-2">
             <DrawerClose asChild>
-              <Button variant="outline" className="w-full">
-                Close
-              </Button>
+              <Button variant="outline" className="w-full">Close</Button>
             </DrawerClose>
-              <Button
-                onClick={() =>
-                  updateMut.mutate({
-                    id: selected!._id,
-                    content: editContent,
-                    status: editStatus as Message["status"],
-                  })
-                }
-                disabled={updateMut.isPending || !editContent.trim()}
-                className="w-full"
-              >
-                {updateMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
-              </Button>
+            <Button
+              onClick={() => {
+                if (!selected) return;
+                updateMut.mutate({
+                  id: selected._id,
+                  content: editContent.trim(),
+                  status: editStatus,
+                });
+              }}
+              disabled={updateMut.isPending || !editContent.trim()}
+              className="w-full"
+            >
+              {updateMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+            </Button>
           </div>
         </DrawerContent>
       </Drawer>
@@ -310,7 +334,6 @@ export function MessagesTable({ data, pageSize = 10, onRowClick, onCreate }: Pro
         }
         size="lg"
       />
-
     </div>
   );
 }

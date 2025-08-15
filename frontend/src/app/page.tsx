@@ -1,15 +1,17 @@
 "use client";
 
 
-import { MessagesTable } from "@/components/messages-table";
+import { MessagesTable } from "@/components/messages-table.tsx";
 import { listMessages } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 
 export default function Page() {
-    const { data, isLoading, error } = useQuery({
-    queryKey: ["messages"],
-    queryFn: listMessages,
-    staleTime: 30_000,
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const { data = [], isFetching, isLoading, error } = useQuery({
+    queryKey: ["messages", statusFilter],
+    queryFn: () => listMessages(statusFilter),
   });
 
   if (isLoading) return <p>Loading…</p>;
@@ -19,7 +21,10 @@ export default function Page() {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Messages</h1>
       <MessagesTable
-      data={data ?? []}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        isFetching={isFetching}
+        data={data ?? []}
     />
     </div>
   );

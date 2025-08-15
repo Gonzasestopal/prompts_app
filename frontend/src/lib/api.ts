@@ -8,10 +8,20 @@ export type Message = {
   updated_at: string;
 };
 
-export async function listMessages() {
-  const r = await fetch(`${API_BASE}/messages`, { cache: "no-store" });
-  if (!r.ok) throw new Error("Failed to load messages");
-  return r.json();
+export async function listMessages(status?: string) {
+  const params = new URLSearchParams();
+  if (status && status !== "all") {
+    params.append("status", status);
+  }
+
+  const res = await fetch(`${API_BASE}/messages?${params.toString()}`, {
+    method: "GET",
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch messages");
+  }
+  return res.json();
 }
 
 export async function createMessage(input: {content: string; status?: "active"|"archived"|"deleted"}) {
