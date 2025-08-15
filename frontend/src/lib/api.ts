@@ -5,3 +5,9 @@ export async function listMessages() {
   if (!r.ok) throw new Error("Failed to load messages");
   return r.json();
 }
+
+export async function createMessage(input: {content: string; status?: "active"|"archived"|"deleted"}) {
+  const r = await fetch(`${API_BASE}/messages`, { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(input) });
+  if (!r.ok) throw new Error("Failed to create");
+  return r.json();
+}

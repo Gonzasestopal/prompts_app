@@ -212,3 +212,6 @@ Content-Type: application/json
 
 ## Images
 ![dashboard](docs/dashboard.png)
+
+![new](docs/new.png)
+

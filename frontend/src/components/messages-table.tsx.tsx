@@ -5,8 +5,12 @@ import { Search } from "lucide-react";
 import * as React from "react";
 import { useMemo, useState } from "react";
 
-import { Badge } from "@/components/ui/badge";
+import { ReusableModal } from "@/components/reusable-modal";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Loader2, Plus } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export type Message = {
@@ -21,7 +25,9 @@ type Props = {
   data: Message[];
   pageSize?: number;
   onRowClick?: (row: Message) => void;
+  onCreate?: (content: string) => Promise<void> | void;
 };
+
 
 function StatusBadge({ status }: { status: Message["status"] }) {
   const map: Record<Message["status"], string> = {
@@ -40,9 +46,12 @@ function fmt(dt: string) {
   }
 }
 
-export function MessagesTable({ data, pageSize = 10, onRowClick }: Props) {
+export function MessagesTable({ data, pageSize = 10, onRowClick, onCreate }: Props) {
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
+  const [open, setOpen] = useState(false);
+  const [content, setContent] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
@@ -65,6 +74,18 @@ export function MessagesTable({ data, pageSize = 10, onRowClick }: Props) {
     if (page > totalPages) setPage(1);
   }, [totalPages, page]);
 
+  async function submitNew() {
+    if (!content.trim() || !onCreate) return;
+    setSubmitting(true);
+    try {
+      await onCreate(content.trim()); // parent does API + refresh
+      setContent("");
+      setOpen(false);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
@@ -77,6 +98,12 @@ export function MessagesTable({ data, pageSize = 10, onRowClick }: Props) {
             className="pl-8"
           />
         </div>
+
+        <Button className="gap-2" onClick={() => setOpen(true)}>
+          <Plus className="h-4 w-4" />
+          New Message
+        </Button>
+
         <div className="text-sm text-muted-foreground">
           {total} item{total === 1 ? "" : "s"}
         </div>
@@ -119,6 +146,33 @@ export function MessagesTable({ data, pageSize = 10, onRowClick }: Props) {
           </TableBody>
         </Table>
       </div>
+
+ <ReusableModal
+        open={open}
+        onOpenChange={setOpen}
+        title="Create message"
+        description="Submit a new message."
+        content={
+          <div className="space-y-3">
+            <label className="grid gap-2">
+              <span className="text-sm font-medium">Content</span>
+              <Input
+                placeholder="Type your message…"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+              />
+            </label>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button onClick={submitNew} disabled={submitting || !content.trim()} className="gap-2">
+                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                Create
+              </Button>
+            </div>
+          </div>
+        }
+        size="lg"
+      />
 
     </div>
   );
